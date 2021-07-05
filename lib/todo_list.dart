@@ -6,6 +6,8 @@ class TodoList extends StatefulWidget {
 }
 
 class _TodoListState extends State<TodoList> {
+  bool iscomplete = false;
+  TextEditingController todoTextController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,24 +31,40 @@ class _TodoListState extends State<TodoList> {
                 shrinkWrap: true,
                 itemCount: 5,
                 itemBuilder: (context, index) {
-                  return ListTile(
-                      onTap: () {},
-                      leading: Container(
-                        height: 30,
-                        width: 30,
-                        decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            shape: BoxShape.circle),
-                        child: Icon(
-                          Icons.check,
-                          color: Colors.grey[300],
+                  return Dismissible(
+                    key: Key(index.toString()),
+                    background: Container(
+                      padding: EdgeInsets.only(left: 20),
+                      alignment: Alignment.centerLeft,
+                      child: Icon(Icons.delete),
+                      color: Colors.red,
+                    ),
+                    onDismissed: (direction) => {print("Removed")},
+                    child: ListTile(
+                        onTap: () {
+                          setState(() {
+                            iscomplete = !iscomplete;
+                          });
+                        },
+                        leading: Container(
+                          height: 30,
+                          width: 30,
+                          decoration: BoxDecoration(
+                              color: Theme.of(context).primaryColor,
+                              shape: BoxShape.circle),
+                          child: iscomplete
+                              ? Icon(
+                                  Icons.check,
+                                  color: Colors.grey[300],
+                                )
+                              : Container(),
                         ),
-                      ),
-                      title: Text("Todo Title",
-                          style: TextStyle(
-                              fontSize: 20,
-                              color: Colors.grey[300],
-                              fontWeight: FontWeight.w600)));
+                        title: Text("Todo Title",
+                            style: TextStyle(
+                                fontSize: 20,
+                                color: Colors.grey[300],
+                                fontWeight: FontWeight.w600))),
+                  );
                 },
               ),
             ],
@@ -86,6 +104,7 @@ class _TodoListState extends State<TodoList> {
                     children: [
                       Divider(),
                       TextFormField(
+                        controller: todoTextController,
                         autofocus: true,
                         style: TextStyle(
                             fontSize: 18, height: 1.5, color: Colors.white),
@@ -98,7 +117,12 @@ class _TodoListState extends State<TodoList> {
                           width: MediaQuery.of(context).size.width,
                           height: 50,
                           child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                if (todoTextController.text.isNotEmpty) {
+                                  print(todoTextController.text);
+                                  Navigator.pop(context);
+                                }
+                              },
                               child: Text("Add"),
                               style: ButtonStyle(
                                   backgroundColor:
