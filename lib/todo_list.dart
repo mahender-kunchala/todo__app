@@ -1,4 +1,8 @@
 import "package:flutter/material.dart";
+import 'package:todo_list/loading.dart';
+import 'package:todo_list/services/database_service.dart';
+
+import 'model/todo.dart';
 
 class TodoList extends StatefulWidget {
   @override
@@ -10,66 +14,83 @@ class _TodoListState extends State<TodoList> {
   TextEditingController todoTextController = TextEditingController();
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(25),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("All Todos",
-                  style: TextStyle(
-                      fontSize: 25,
-                      color: Colors.grey[200],
-                      fontWeight: FontWeight.bold)),
-              Divider(color: Colors.grey[600]),
-              SizedBox(height: 10),
-              ListView.separated(
-                separatorBuilder: (context, index) => Divider(
-                  color: Colors.grey[800],
-                ),
-                shrinkWrap: true,
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return Dismissible(
-                    key: Key(index.toString()),
-                    background: Container(
-                      padding: EdgeInsets.only(left: 20),
-                      alignment: Alignment.centerLeft,
-                      child: Icon(Icons.delete),
-                      color: Colors.red,
+        child: StreamBuilder<List<Todo>?>(
+            stream: DatabaseService().listTodos(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return Loading();
+              }
+              List<Todo>? todos = snapshot.data;
+
+              return Padding(
+                padding: EdgeInsets.all(25),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("All Todos",
+                        style: TextStyle(
+                            fontSize: 25,
+                            color: Colors.grey[200],
+                            fontWeight: FontWeight.bold)),
+                    Divider(color: Colors.grey[600]),
+                    SizedBox(height: 10),
+                    ListView.separated(
+                      separatorBuilder: (context, index) => Divider(
+                        color: Colors.grey[800],
+                      ),
+                      shrinkWrap: true,
+                      itemCount: (todos as dynamic).length,
+                      itemBuilder: (context, index) {
+                        return Dismissible(
+                          key: Key((todos as dynamic)[index].title.toString()),
+                          background: Container(
+                            padding: EdgeInsets.only(left: 20),
+                            alignment: Alignment.centerLeft,
+                            child: Icon(Icons.delete),
+                            color: Colors.red,
+                          ),
+                          onDismissed: (direction) async {
+                            await DatabaseService()
+                                .removeTodo((todos as dynamic)[index].uid);
+
+                            //
+                          },
+                          child: ListTile(
+                              onTap: () {
+                                setState(() {
+                                  DatabaseService().completeTask(
+                                      (todos as dynamic)[index].uid);
+                                });
+                              },
+                              leading: Container(
+                                height: 30,
+                                width: 30,
+                                decoration: BoxDecoration(
+                                    color: Theme.of(context).primaryColor,
+                                    shape: BoxShape.circle),
+                                child: (todos as dynamic)[index].iscomplete
+                                    ? Icon(
+                                        Icons.check,
+                                        color: Colors.grey[300],
+                                      )
+                                    : Container(),
+                              ),
+                              title: Text(
+                                  (todos as dynamic)[index].title.toString(),
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.grey[300],
+                                      fontWeight: FontWeight.w600))),
+                        );
+                      },
                     ),
-                    onDismissed: (direction) => {print("Removed")},
-                    child: ListTile(
-                        onTap: () {
-                          setState(() {
-                            iscomplete = !iscomplete;
-                          });
-                        },
-                        leading: Container(
-                          height: 30,
-                          width: 30,
-                          decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor,
-                              shape: BoxShape.circle),
-                          child: iscomplete
-                              ? Icon(
-                                  Icons.check,
-                                  color: Colors.grey[300],
-                                )
-                              : Container(),
-                        ),
-                        title: Text("Todo Title",
-                            style: TextStyle(
-                                fontSize: 20,
-                                color: Colors.grey[300],
-                                fontWeight: FontWeight.w600))),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
+                  ],
+                ),
+              );
+            }),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
@@ -117,9 +138,10 @@ class _TodoListState extends State<TodoList> {
                           width: MediaQuery.of(context).size.width,
                           height: 50,
                           child: ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 if (todoTextController.text.isNotEmpty) {
-                                  print(todoTextController.text);
+                                  await DatabaseService().createNewTodo(
+                                      todoTextController.text.trim());
                                   Navigator.pop(context);
                                 }
                               },
